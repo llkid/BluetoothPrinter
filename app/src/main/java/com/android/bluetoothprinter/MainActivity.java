@@ -1,15 +1,21 @@
 package com.android.bluetoothprinter;
 
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 
+import android.Manifest;
+import android.annotation.SuppressLint;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.pm.PackageManager;
+import android.os.Build;
 import android.os.Bundle;
+import android.os.PersistableBundle;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.View;
@@ -65,7 +71,7 @@ public class MainActivity extends AppCompatActivity {
         //广播注册
         IntentFilter filter = new IntentFilter(BluetoothDevice.ACTION_FOUND);
         filter.addAction(BluetoothAdapter.ACTION_DISCOVERY_FINISHED);
-        registerReceiver(mReceiver, filter); // Don't forget to unregister during onDestroy
+        this.registerReceiver(mReceiver, filter); // Don't forget to unregister during onDestroy
         //初始化
         mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
         mSwitch = (Switch) findViewById(R.id.switch1);
@@ -161,8 +167,62 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View view) {
                 Toast.makeText(MainActivity.this, "88", Toast.LENGTH_SHORT).show();
+                closeBluetooth();
+                finish();
             }
         });
+    }
+
+    /**
+     * 解决：无法发现蓝牙设备的问题
+     *
+     * 对于发现新设备这个功能, 还需另外两个权限(Android M 以上版本需要显式获取授权,附授权代码):
+     */
+    private final int ACCESS_LOCATION=1;
+    @SuppressLint("WrongConstant")
+    private void getPermission() {
+        Log.e("TAG", "---------------->");
+        if (Build.VERSION.SDK_INT > Build.VERSION_CODES.M) {
+            int permissionCheck = 0;
+            permissionCheck = this.checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION);
+            permissionCheck += this.checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION);
+
+            if (permissionCheck != PackageManager.PERMISSION_GRANTED) {
+                //未获得权限
+                this.requestPermissions( // 请求授权
+                        new String[]{Manifest.permission.ACCESS_FINE_LOCATION,
+                                Manifest.permission.ACCESS_COARSE_LOCATION},
+                        ACCESS_LOCATION);// 自定义常量,任意整型
+            }
+        }
+    }
+
+    /**
+     * 请求权限的结果回调。每次调用 requestpermissions（string[]，int）时都会调用此方法。
+     * @param requestCode 传入的请求代码
+     * @param permissions 传入permissions的要求
+     * @param grantResults 相应权限的授予结果:PERMISSION_GRANTED 或 PERMISSION_DENIED
+     */
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+        switch (requestCode) {
+            case ACCESS_LOCATION:
+                if (hasAllPermissionGranted(grantResults)) {
+                    Log.i("MainActivity", "onRequestPermissionsResult: 用户允许权限");
+                } else {
+                    Log.i("MainActivity", "onRequestPermissionsResult: 拒绝搜索设备权限");
+                }
+                break;
+        }
+    }
+
+    private boolean hasAllPermissionGranted(int[] grantResults) {
+        for (int grantResult : grantResults) {
+            if (grantResult == PackageManager.PERMISSION_DENIED) {
+                return false;
+            }
+        }
+        return true;
     }
 
     @Override
@@ -170,6 +230,7 @@ public class MainActivity extends AppCompatActivity {
         super.onActivityResult(requestCode, resultCode, data);
         if (resultCode == RESULT_OK && requestCode == REQUEST_ENABLE_BT) {
             Log.e("text", "开启蓝牙");
+            getPermission();
             searchDevices();
             mSwitch.setChecked(true);
             mBluetoothDevicesDatas.clear();
@@ -204,6 +265,11 @@ public class MainActivity extends AppCompatActivity {
      * 搜索蓝牙设备
      */
     public void searchDevices() {
+        //判断是否正在搜索
+        if (mBluetoothAdapter.isDiscovering()) {
+            //如果正在搜索则取消搜索后再搜索
+            mBluetoothAdapter.cancelDiscovery();
+        }
         mBluetoothDevicesDatas.clear();
         adapter.notifyDataSetChanged();
         //开始搜索蓝牙设备
@@ -217,6 +283,7 @@ public class MainActivity extends AppCompatActivity {
     private final BroadcastReceiver mReceiver = new BroadcastReceiver() {
         public void onReceive(Context context, Intent intent) {
             String action = intent.getAction();
+            Log.e("TAG", "execute here");
             // 把搜索的设置添加到集合中
             if (BluetoothDevice.ACTION_FOUND.equals(action)) {
                 BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
@@ -231,6 +298,7 @@ public class MainActivity extends AppCompatActivity {
                 adapter.notifyDataSetChanged();
                 //搜索完成
             } else if (BluetoothAdapter.ACTION_DISCOVERY_FINISHED.equals(action)) {
+                Log.i("TAG", "ACTION_DISCOVERY_FINISHED: 搜索完毕");
                 setViewStatus(false);
             }
         }
