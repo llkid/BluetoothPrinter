@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <item
+        android:id="@+id/take_photo"
+        android:icon="@android:drawable/ic_menu_camera"
+        android:title="@string/take_photo"
+        app:showAsAction="always" />
+    <item
+        android:id="@+id/choose_from_album"
+        android:icon="@android:drawable/ic_menu_gallery"
+        android:title="@string/choose_from_album"
+        app:showAsAction="ifRoom" />
+    <item
+        android:id="@+id/back_up"
+        android:title="@string/back"
+        app:showAsAction="never" />
+
+</menu>

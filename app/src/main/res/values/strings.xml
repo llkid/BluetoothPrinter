@@ -1,4 +1,7 @@
 <resources>
     <string name="app_name">BluetoothPrinter</string>
-    <string name="action_settings">Settings</string>
+    <string name="action_settings">设置</string>
+    <string name="take_photo">拍照</string>
+    <string name="choose_from_album">相册</string>
+    <string name="back">返回</string>
 </resources>
