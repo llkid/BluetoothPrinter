@@ -5,6 +5,7 @@ import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
 import android.content.Context;
+import android.graphics.Bitmap;
 import android.os.Handler;
 import android.os.Message;
 import android.util.Log;
@@ -29,7 +30,11 @@ import static com.android.bluetoothprinter.PrintBean.PRINT_TYPE;
  * shi-bash-cmd  2020/02/06
  */
 class PrinterAdapter extends BaseAdapter {
+
+    private static String TAG = PrinterAdapter.class.getSimpleName();
+
     private ArrayList<PrintBean> mBluetoothDevicesDatas;
+
     private Context mContext;
     //蓝牙适配器
     private BluetoothAdapter mBluetoothAdapter;
@@ -43,6 +48,9 @@ class PrinterAdapter extends BaseAdapter {
     private final int exceptionCod = 100;
     //打印的内容
     private String mPrintContent;
+
+    private boolean isPic = false;
+    private boolean isText = false;
     //在打印异常时更新ui
     Handler handler = new Handler() {
         @Override
@@ -95,7 +103,7 @@ class PrinterAdapter extends BaseAdapter {
         final PrintBean dataBean = mBluetoothDevicesDatas.get(position);
         icon.setBackgroundResource(dataBean.getTypeIcon());
         name.setText(dataBean.name);
-        address.setText(dataBean.isConnect ? "已连接" : "未连接");
+        address.setText(dataBean.isConnect ? "可连接" : "未连接");
         start.setText(dataBean.getDeviceType(start));
 
         //点击连接与打印
@@ -116,7 +124,8 @@ class PrinterAdapter extends BaseAdapter {
                         //是打印机
                         if (dataBean.getType() == PRINT_TYPE) {
                             setConnect(mBluetoothAdapter.getRemoteDevice(dataBean.address), position);
-                            //不是打印机
+
+                            //不是打印机 进行其它蓝牙设备操作
                         } else {
                             Toast.makeText(mContext, "该设备不是打印机", Toast.LENGTH_SHORT).show();
                         }
@@ -147,7 +156,7 @@ class PrinterAdapter extends BaseAdapter {
     }
 
     /**
-     * 发送数据
+     * 发送数据 打印文本
      */
     public void send(String sendData) {
         try {
@@ -166,6 +175,7 @@ class PrinterAdapter extends BaseAdapter {
 
     /**
      * 连接为客户端
+     * 线程执行打印工作
      */
     private class ConnectThread extends Thread {
         public ConnectThread(BluetoothDevice device) {
@@ -176,7 +186,9 @@ class PrinterAdapter extends BaseAdapter {
             }
         }
 
+        @Override
         public void run() {
+            super.run();
             //取消的发现,因为它将减缓连接
             mBluetoothAdapter.cancelDiscovery();
             try {
@@ -185,7 +197,7 @@ class PrinterAdapter extends BaseAdapter {
                 //连接成功获取输出流
                 outputStream = mmSocket.getOutputStream();
 
-
+                //打印方法 后续增加多种打印方式
                 send(mPrintContent);
             } catch (Exception connectException) {
                 Log.e("test", "连接失败");
@@ -205,4 +217,57 @@ class PrinterAdapter extends BaseAdapter {
             }
         }
     }
+
+    /**
+     * 打印的图片初始化
+     */
+    private static String imgName = null;
+    private void imageInit(OutputStream outputStream, String [] str) {
+        try {
+            PrintUtil printUtil = new PrintUtil();
+            printUtil.setOutputStream(outputStream);
+            printUtil.selectCommand(PrintUtil.RESET);
+            printUtil.selectCommand(PrintUtil.LINE_SPACING);
+            printUtil.selectCommand(PrintUtil.LINE_SPACING_DEFAULT);
+            printUtil.selectCommand(PrintUtil.ALIGN_CENTER);
+            printUtil.selectCommand(PrintUtil.BOLD);
+            printUtil.selectCommand(PrintUtil.DOUBLE_HEIGHT_WIDTH);
+            printUtil.printText(str[0]);
+            printUtil.selectCommand(PrintUtil.BOLD_CANCEL);
+            printUtil.selectCommand(PrintUtil.NORMAL);
+            printUtil.printText(str[1]);
+
+            Bitmap bitmap = ImageUtil.getBitmap();
+            bitmap = printUtil.convertGreyImgByFloyd(bitmap);
+            //这里需在写一个获取图片路径方法（网路图片或者本地图片）
+            byte[] imageData = printUtil.bitmap2Bytes(bitmap, Bitmap.CompressFormat.valueOf(imgName));
+            printUtil.selectCommand(imageData);
+
+            outputStream.write(imageData, 0, imageData.length);
+            outputStream.flush();
+            outputStream.close();
+            progressDialog.dismiss();
+        } catch (Exception e) {
+            e.printStackTrace();
+            handler.sendEmptyMessage(exceptionCod); // 向Handler发送消息,更新UI
+        }
+    }
+
+    /**
+     * 结束工作时收尾操作
+     */
+    public void releasePrint(){
+        mBluetoothAdapter = null;
+        if(mmSocket != null){
+            try {
+                mmSocket.close();
+                mmSocket = null;
+            } catch (IOException e) {
+                e.printStackTrace();
+                Log.d(TAG,"releasePrint()，IOException ：",e);
+                mmSocket = null;
+            }
+        }
+    }
+
 }
