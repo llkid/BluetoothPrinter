@@ -1,7 +1,9 @@
 package com.android.bluetoothprinter;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
+import androidx.drawerlayout.widget.DrawerLayout;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
@@ -16,6 +18,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.util.Log;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.CompoundButton;
 import android.widget.ListView;
@@ -25,6 +28,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
+import com.google.android.material.navigation.NavigationView;
 
 import java.util.ArrayList;
 
@@ -34,7 +38,7 @@ import static com.android.bluetoothprinter.PrintBean.PRINT_TYPE;
  * 类说明:打印的页面
  * shi-bash-cmd  2020/02/06
  */
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener {
 
     //设备列表
     private ListView listView;
@@ -51,6 +55,8 @@ public class MainActivity extends AppCompatActivity {
     private Toolbar toolbar;
     private TextView searchHint;
 
+    private DrawerLayout mDrawerLayout;
+
     /**
      * 启动打印页面
      *
@@ -66,6 +72,11 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        mDrawerLayout = (DrawerLayout) findViewById(R.id.drawer_layout);
+        NavigationView navigationView = (NavigationView) findViewById(R.id.nav_view);
+        navigationView.setNavigationItemSelectedListener(this);
+
         //广播注册
         IntentFilter filter = new IntentFilter(BluetoothDevice.ACTION_FOUND);
         filter.addAction(BluetoothAdapter.ACTION_DISCOVERY_FINISHED);
@@ -319,4 +330,25 @@ public class MainActivity extends AppCompatActivity {
         }
     };
 
+    @Override
+    public boolean onNavigationItemSelected(@NonNull MenuItem item) {
+        switch (item.getItemId()) {
+            case R.id.nav_call:
+                mDrawerLayout.closeDrawers();
+                break;
+            case R.id.nav_friends:
+                break;
+            case R.id.nav_location:
+                break;
+            case R.id.nav_mail:
+                break;
+            case R.id.nav_task:
+                Intent intent = new Intent(this, PrintImage.class);
+                startActivity(intent);
+                break;
+            default:
+                break;
+        }
+        return false;
+    }
 }

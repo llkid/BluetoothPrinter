@@ -24,6 +24,8 @@ import android.provider.DocumentsContract;
 import android.provider.MediaStore;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
+import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.Toast;
 
@@ -35,20 +37,28 @@ import java.io.FileNotFoundException;
  * 显示并打印图片类
  * shi-bash-cmd 2020/02/07
  */
-public class PrintImage extends AppCompatActivity {
+public class PrintImage extends AppCompatActivity implements View.OnClickListener {
+
+    private String TAG = this.getClass().getSimpleName();
 
     private static final int TAKE_PHOTO = 1;
     private ImageView picture;
     private Uri imageUri;
     public static final int CHOOSE_PHOTO = 2;
 
+    private Button printBtn;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_print_image);
 
+        //右上角的设置按钮
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar_img);
         setSupportActionBar(toolbar);
+
+        printBtn = (Button) findViewById(R.id.img_print);
+        printBtn.setOnClickListener(this);
     }
 
     @Override
@@ -57,6 +67,11 @@ public class PrintImage extends AppCompatActivity {
         return true;
     }
 
+    /**
+     * 点击相应按钮获取对应的方法
+     * @param item
+     * @return
+     */
     @Override
     public boolean onOptionsItemSelected(@NonNull MenuItem item) {
         switch (item.getItemId()) {
@@ -75,6 +90,7 @@ public class PrintImage extends AppCompatActivity {
                 break;
             case R.id.back_up:
                 Toast.makeText(this, "You clicked back_up", Toast.LENGTH_SHORT).show();
+                finish();
                 break;
             default:
         }
@@ -104,6 +120,15 @@ public class PrintImage extends AppCompatActivity {
         startActivityForResult(intent, TAKE_PHOTO);
     }
 
+    /**
+     *  打开手机相册
+     */
+    private void openAlbum() {
+        Intent intent = new Intent("android.intent.action.GET_CONTENT");
+        intent.setType("image/*");
+        startActivityForResult(intent, CHOOSE_PHOTO);
+    }
+
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
@@ -124,7 +149,7 @@ public class PrintImage extends AppCompatActivity {
         super.onActivityResult(requestCode, resultCode, data);
         switch (requestCode) {
             case TAKE_PHOTO:
-                if (requestCode == RESULT_OK) {
+                if (resultCode == RESULT_OK) {
                     try {
                         Bitmap bitmap = BitmapFactory.decodeStream(getContentResolver().openInputStream(imageUri));
                         picture.setImageBitmap(bitmap);
@@ -192,12 +217,6 @@ public class PrintImage extends AppCompatActivity {
         return path;
     }
 
-    private void openAlbum() {
-        Intent intent = new Intent("android.intent.action.GET_CONTENT");
-        intent.setType("image/*");
-        startActivityForResult(intent, CHOOSE_PHOTO);
-    }
-
     public  Uri getImageContentUri(String path) {
         Cursor cursor = getContentResolver().query(MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
                 new String[] { MediaStore.Images.Media._ID }, MediaStore.Images.Media.DATA + "=? ",
@@ -227,4 +246,15 @@ public class PrintImage extends AppCompatActivity {
         }
     }
 
+    @Override
+    public void onClick(View v) {
+        switch (v.getId()) {
+            case R.id.img_print:
+                //打印方法
+                Toast.makeText(PrintImage.this, "printing...", Toast.LENGTH_SHORT).show();
+                break;
+            default:
+                break;
+        }
+    }
 }
