@@ -15,8 +15,8 @@
         android:roundIcon="@drawable/ic_bluetooth_audio_black_24dp"
         android:supportsRtl="true"
         android:theme="@style/AppTheme.NoActionBar">
-        <activity android:name=".PrintImage"></activity>
-        <activity android:name=".MainActivity">
+
+        <activity android:name=".LoginLayout">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
@@ -24,15 +24,24 @@
             </intent-filter>
         </activity>
 
+        <activity
+            android:name=".PrintImage"
+            android:label="@string/print_img" />
+
+        <activity
+            android:name=".MainActivity"
+            android:label="@string/main_toolbar_name"/>
+
         <provider
-            android:authorities="com.android.bluetoothprinter.fileprovider"
             android:name="androidx.core.content.FileProvider"
+            android:authorities="com.android.bluetoothprinter.fileprovider"
             android:exported="false"
             android:grantUriPermissions="true">
             <meta-data
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_paths" />
         </provider>
+
     </application>
 
 </manifest>

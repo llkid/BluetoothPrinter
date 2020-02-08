@@ -4,24 +4,24 @@
     <group android:checkableBehavior="single" >
         <item
             android:id="@+id/nav_call"
-            android:icon="@android:drawable/btn_star_big_on"
+            android:icon="@android:drawable/btn_star_big_off"
             android:title="Call" />
         <item
             android:id="@+id/nav_friends"
-            android:icon="@android:drawable/btn_star_big_on"
+            android:icon="@android:drawable/btn_star_big_off"
             android:title="Friends" />
         <item
             android:id="@+id/nav_location"
-            android:icon="@android:drawable/btn_star_big_on"
+            android:icon="@android:drawable/btn_star_big_off"
             android:title="Location" />
         <item
-            android:id="@+id/nav_mail"
-            android:icon="@android:drawable/btn_star_big_on"
-            android:title="Mail" />
-        <item
             android:id="@+id/nav_task"
-            android:icon="@android:color/holo_blue_bright"
+            android:icon="@android:drawable/btn_star_big_off"
             android:title="Tasks" />
+        <item
+            android:id="@+id/nav_quit"
+            android:icon="@android:drawable/btn_star_big_off"
+            android:title="Quit" />
     </group>
 
 </menu>

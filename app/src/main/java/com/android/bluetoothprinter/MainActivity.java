@@ -1,8 +1,10 @@
 package com.android.bluetoothprinter;
 
 import androidx.annotation.NonNull;
+import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
+import androidx.core.view.GravityCompat;
 import androidx.drawerlayout.widget.DrawerLayout;
 
 import android.Manifest;
@@ -42,19 +44,25 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
     //设备列表
     private ListView listView;
+    //搜索到的设备数组序列
     private ArrayList<PrintBean> mBluetoothDevicesDatas;
+    //打印数据适配器
     private PrinterAdapter adapter;
     //蓝牙适配器
     private BluetoothAdapter mBluetoothAdapter;
     //请求的code
     public static final int REQUEST_ENABLE_BT = 1;
-
+    //蓝牙开关选择
     private Switch mSwitch;
+    //悬浮按钮进行蓝牙设备搜索的刷新
     private FloatingActionButton mFloatingActionButton;
+    //在搜索蓝牙设备时显示
     private ProgressBar mProgressBar;
+    // <- 返回toolbar
     private Toolbar toolbar;
+    //在搜索蓝牙是显示
     private TextView searchHint;
-
+    //侧滑栏
     private DrawerLayout mDrawerLayout;
 
     /**
@@ -73,7 +81,15 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        //顶栏初始化
+        toolbar = (Toolbar) findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
         mDrawerLayout = (DrawerLayout) findViewById(R.id.drawer_layout);
+        ActionBar actionBar = getSupportActionBar();
+        if (actionBar != null) {
+            actionBar.setDisplayHomeAsUpEnabled(true);
+            actionBar.setHomeAsUpIndicator(R.drawable.ic_arrow_back_black_24dp);
+        }
         NavigationView navigationView = (NavigationView) findViewById(R.id.nav_view);
         navigationView.setNavigationItemSelectedListener(this);
 
@@ -81,14 +97,13 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         IntentFilter filter = new IntentFilter(BluetoothDevice.ACTION_FOUND);
         filter.addAction(BluetoothAdapter.ACTION_DISCOVERY_FINISHED);
         this.registerReceiver(mReceiver, filter); // Don't forget to unregister during onDestroy
+
         //初始化
         mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
         mSwitch = (Switch) findViewById(R.id.switch1);
         mFloatingActionButton = (FloatingActionButton) findViewById(R.id.floatingActionButton);
         mProgressBar = (ProgressBar) findViewById(R.id.progressBar);
-        toolbar = (Toolbar) findViewById(R.id.toolbar);
         searchHint = (TextView) findViewById(R.id.searchHint);
-        toolbar.setTitle("选择打印设备");
 
         listView = (ListView) findViewById(R.id.listView);
         mBluetoothDevicesDatas = new ArrayList<>();
@@ -100,6 +115,22 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         chechBluetooth();
         addViewListener();
 
+    }
+
+    /**
+     * home按钮显示侧滑界面
+     * @param item
+     * @return
+     */
+    @Override
+    public boolean onOptionsItemSelected(@NonNull MenuItem item) {
+        switch (item.getItemId()) {
+            case android.R.id.home:
+                mDrawerLayout.openDrawer(GravityCompat.START);
+                break;
+            default:
+        }
+        return true;
     }
 
     /**
@@ -116,7 +147,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                 //开启蓝牙
             } else {
                 searchDevices();
-                setViewStatus(false);
+                setViewStatus(true);
                 mSwitch.setChecked(true);
             }
         }
@@ -171,7 +202,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             }
         });
 
-        toolbar.setNavigationIcon(R.drawable.ic_arrow_back_black_24dp);
+        /*toolbar.setNavigationIcon(R.drawable.ic_arrow_back_black_24dp);
         toolbar.setNavigationOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -179,7 +210,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                 closeBluetooth();
                 finish();
             }
-        });
+        });*/
     }
 
     /**
@@ -187,7 +218,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
      *
      * 对于发现新设备这个功能, 还需另外两个权限(Android M 以上版本需要显式获取授权,附授权代码):
      */
-    private final int ACCESS_LOCATION=1;
+    private final int ACCESS_LOCATION = 1;
     @SuppressLint("WrongConstant")
     private void getPermission() {
         Log.e("TAG", "---------------->");
@@ -330,6 +361,11 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         }
     };
 
+    /**
+     * 侧滑栏选者
+     * @param item
+     * @return
+     */
     @Override
     public boolean onNavigationItemSelected(@NonNull MenuItem item) {
         switch (item.getItemId()) {
@@ -340,15 +376,17 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                 break;
             case R.id.nav_location:
                 break;
-            case R.id.nav_mail:
-                break;
             case R.id.nav_task:
                 Intent intent = new Intent(this, PrintImage.class);
                 startActivity(intent);
                 break;
+            case R.id.nav_quit:
+                Intent intent1 = new Intent(this, LoginLayout.class);
+                startActivity(intent1);
+                break;
             default:
                 break;
         }
-        return false;
+        return true;
     }
 }

@@ -22,6 +22,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.provider.DocumentsContract;
 import android.provider.MediaStore;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -52,6 +53,9 @@ public class PrintImage extends AppCompatActivity implements View.OnClickListene
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_print_image);
+
+        //这里要得到显示图片的实例，不然在后面设置的时候有可能发生闪退
+        picture = (ImageView) findViewById(R.id.picture);
 
         //右上角的设置按钮
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar_img);
@@ -93,12 +97,12 @@ public class PrintImage extends AppCompatActivity implements View.OnClickListene
                 finish();
                 break;
             default:
+                break;
         }
         return true;
     }
 
     private void takePhoto() {
-        picture = (ImageView) findViewById(R.id.picture);
         File outputImage = new File(getExternalCacheDir(), "output_image.jpg");
         try {
             if (outputImage.exists()) {
@@ -126,7 +130,7 @@ public class PrintImage extends AppCompatActivity implements View.OnClickListene
     private void openAlbum() {
         Intent intent = new Intent("android.intent.action.GET_CONTENT");
         intent.setType("image/*");
-        startActivityForResult(intent, CHOOSE_PHOTO);
+        startActivityForResult(intent, CHOOSE_PHOTO);//打开相册
     }
 
     @Override
@@ -172,6 +176,7 @@ public class PrintImage extends AppCompatActivity implements View.OnClickListene
         }
     }
 
+    //需要api 19 以上
     @RequiresApi(api = Build.VERSION_CODES.KITKAT)
     private void handleImageOnKitKat(Intent data) {
         String imagePath = null;
@@ -205,7 +210,7 @@ public class PrintImage extends AppCompatActivity implements View.OnClickListene
 
     private String getImagePath(Uri uri, String selection) {
         String path = null;
-
+        //通过Uri和selection来获取真实的图片路径
         Cursor cursor = getContentResolver().query(uri, null, selection, null, null);
         if (cursor != null) {
             if (cursor.moveToFirst()) {
@@ -213,7 +218,6 @@ public class PrintImage extends AppCompatActivity implements View.OnClickListene
             }
             cursor.close();
         }
-
         return path;
     }
 
@@ -224,14 +228,17 @@ public class PrintImage extends AppCompatActivity implements View.OnClickListene
         if (cursor != null && cursor.moveToFirst()) {
             int id = cursor.getInt(cursor.getColumnIndex(MediaStore.MediaColumns._ID));
             Uri baseUri = Uri.parse("content://media/external/images/media");
+            cursor.close();
             return Uri.withAppendedPath(baseUri, "" + id);
         } else {
             // 如果图片不在手机的共享图片数据库，就先把它插入。
             if (new File(path).exists()) {
                 ContentValues values = new ContentValues();
                 values.put(MediaStore.Images.Media.DATA, path);
+                cursor.close();
                 return getContentResolver().insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values);
             } else {
+                cursor.close();
                 return null;
             }
         }
@@ -240,6 +247,7 @@ public class PrintImage extends AppCompatActivity implements View.OnClickListene
     private void displayImage(String imagePath) {
         if (imagePath != null) {
 //            Bitmap bitmap = BitmapFactory.decodeFile(imagePath);
+//            picture.setImageBitmap(bitmap);
             picture.setImageURI(getImageContentUri(imagePath));
         } else {
             Toast.makeText(this, "Failed to get image", Toast.LENGTH_SHORT).show();
