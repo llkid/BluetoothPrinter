@@ -49,8 +49,10 @@ class PrinterAdapter extends BaseAdapter {
     //打印的内容
     private String mPrintContent;
 
-    private boolean isPic = false;
-    private boolean isText = false;
+    private boolean isStartPrint;
+
+    private static PrintBean dataBean;
+
     //在打印异常时更新ui
     Handler handler = new Handler() {
         @Override
@@ -92,6 +94,16 @@ class PrinterAdapter extends BaseAdapter {
         return position;
     }
 
+    //返回打印机状态 以供打印文本和图片
+    public boolean isStartPrint() {
+        return isStartPrint;
+    }
+
+    public static PrintBean getDataBean() {
+        return dataBean;
+    }
+
+    //这里只设置与打印设备的连接
     @Override
     public View getView(final int position, View convertView, ViewGroup parent) {
         convertView = LayoutInflater.from(mContext).inflate(R.layout.item, null);
@@ -100,10 +112,10 @@ class PrinterAdapter extends BaseAdapter {
         TextView address = (TextView) convertView.findViewById(R.id.address);
         TextView start = (TextView) convertView.findViewById(R.id.start);
 
-        final PrintBean dataBean = mBluetoothDevicesDatas.get(position);
+        dataBean = mBluetoothDevicesDatas.get(position);
         icon.setBackgroundResource(dataBean.getTypeIcon());
         name.setText(dataBean.name);
-        address.setText(dataBean.isConnect ? "可连接" : "未连接");
+        address.setText(dataBean.isConnect ? "已连接" : "未连接");
         start.setText(dataBean.getDeviceType(start));
 
         //点击连接与打印
@@ -114,8 +126,9 @@ class PrinterAdapter extends BaseAdapter {
                     //如果已经连接并且是打印机
                     if (dataBean.isConnect && dataBean.getType() == PRINT_TYPE) {
                         if (mBluetoothAdapter.isEnabled()) {
-                            new ConnectThread(mBluetoothAdapter.getRemoteDevice(dataBean.address)).start();
-                            progressDialog = ProgressDialog.show(mContext, "提示", "正在打印...", true);
+//                            new ConnectThread(mBluetoothAdapter.getRemoteDevice(dataBean.address)).start();
+                            isStartPrint = true;
+                            Toast.makeText(mContext, "设备已连接", Toast.LENGTH_SHORT).show();
                         } else {
                             Toast.makeText(mContext, "蓝牙没有打开", Toast.LENGTH_SHORT).show();
                         }
@@ -124,7 +137,6 @@ class PrinterAdapter extends BaseAdapter {
                         //是打印机
                         if (dataBean.getType() == PRINT_TYPE) {
                             setConnect(mBluetoothAdapter.getRemoteDevice(dataBean.address), position);
-
                             //不是打印机 进行其它蓝牙设备操作
                         } else {
                             Toast.makeText(mContext, "该设备不是打印机", Toast.LENGTH_SHORT).show();
@@ -137,6 +149,21 @@ class PrinterAdapter extends BaseAdapter {
         });
 
         return convertView;
+    }
+
+    /**
+     * 完成连接Socket才能开始打印
+     */
+    private void connectPrinterSocket() {
+        if (isStartPrint) {
+            try {
+                BluetoothDevice device = mBluetoothAdapter.getRemoteDevice(dataBean.address);
+                mmSocket = device.createRfcommSocketToServiceRecord(uuid);
+                mmSocket.connect();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
     }
 
     /**
@@ -172,6 +199,51 @@ class PrinterAdapter extends BaseAdapter {
         }
     }
 
+    /**
+     * 打印图片接口
+     * @param bitmap bitmap转换成byte[] 类型的数据
+     */
+    public void startPrintImage(Bitmap bitmap) {
+        if (mmSocket == null && dataBean.getType() == PRINT_TYPE) {
+            connectPrinterSocket();
+        } else {
+            Toast.makeText(mContext, "未找到打印设备", Toast.LENGTH_SHORT).show();
+        }
+        try {
+            outputStream = mmSocket.getOutputStream();
+            //这里是打印操作
+            imageInit(outputStream, bitmap);
+        } catch (IOException e) {
+            e.printStackTrace();
+            handler.sendEmptyMessage(exceptionCod); // 向Handler发送消息,更新UI
+        }
+    }
+
+    /**
+     * 打印文本接口
+     * @param sendData 传入的String
+     */
+    public void startPrintText(String sendData) {
+        if (mmSocket == null && dataBean.getType() == PRINT_TYPE) {
+            connectPrinterSocket();
+        } else {
+            Toast.makeText(mContext, "未找到打印设备", Toast.LENGTH_SHORT).show();
+        }
+        try {
+            outputStream = mmSocket.getOutputStream();
+            byte[] data = sendData.getBytes("gbk");
+            outputStream.write(data, 0, data.length);
+            //切纸
+            outputStream.write(new byte[]{0x0a, 0x0a, 0x1d, 0x56, 0x01});
+            outputStream.flush();
+            outputStream.close();
+            progressDialog.dismiss();
+        } catch (IOException e) {
+            e.printStackTrace();
+            handler.sendEmptyMessage(exceptionCod); // 向Handler发送消息,更新UI
+
+        }
+    }
 
     /**
      * 连接为客户端
@@ -219,31 +291,23 @@ class PrinterAdapter extends BaseAdapter {
     }
 
     /**
-     * 打印的图片初始化
+     * 图片数据处理及打印操作
+     * @param outputStream
+     * @param bitmap
      */
-    private static String imgName = null;
-    private void imageInit(OutputStream outputStream, String [] str) {
+    private void imageInit(OutputStream outputStream, Bitmap bitmap) {
         try {
             PrintUtil printUtil = new PrintUtil();
             printUtil.setOutputStream(outputStream);
             printUtil.selectCommand(PrintUtil.RESET);
-            printUtil.selectCommand(PrintUtil.LINE_SPACING);
-            printUtil.selectCommand(PrintUtil.LINE_SPACING_DEFAULT);
-            printUtil.selectCommand(PrintUtil.ALIGN_CENTER);
-            printUtil.selectCommand(PrintUtil.BOLD);
-            printUtil.selectCommand(PrintUtil.DOUBLE_HEIGHT_WIDTH);
-            printUtil.printText(str[0]);
-            printUtil.selectCommand(PrintUtil.BOLD_CANCEL);
             printUtil.selectCommand(PrintUtil.NORMAL);
-            printUtil.printText(str[1]);
 
-            Bitmap bitmap = ImageUtil.getBitmap();
-            bitmap = printUtil.convertGreyImgByFloyd(bitmap);
-            //这里需在写一个获取图片路径方法（网路图片或者本地图片）
-            byte[] imageData = printUtil.bitmap2Bytes(bitmap, Bitmap.CompressFormat.valueOf(imgName));
-            printUtil.selectCommand(imageData);
+            Bitmap tempBitmap = printUtil.convertGreyImgByFloyd(bitmap);
+            byte[] imgData = printUtil.bitmap2Bytes(tempBitmap, Bitmap.CompressFormat.JPEG);
 
-            outputStream.write(imageData, 0, imageData.length);
+            outputStream.write(imgData, 0, imgData.length);
+            //切纸
+            outputStream.write(new byte[]{0x0a, 0x0a, 0x1d, 0x56, 0x01});
             outputStream.flush();
             outputStream.close();
             progressDialog.dismiss();

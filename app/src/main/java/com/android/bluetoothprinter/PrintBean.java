@@ -1,5 +1,6 @@
 package com.android.bluetoothprinter;
 
+import android.bluetooth.BluetoothClass;
 import android.bluetooth.BluetoothDevice;
 import android.text.TextUtils;
 import android.view.View;
@@ -48,7 +49,7 @@ public class PrintBean {
      * @return
      */
     public int getTypeIcon() {
-        if (type == 260) {
+        if (type == BluetoothClass.Device.Major.COMPUTER) {
             return R.drawable.ic_computer_black_24dp;
         } else if (type == PRINT_TYPE) {
             return R.drawable.ic_local_printshop_black_24dp;
@@ -78,7 +79,6 @@ public class PrintBean {
     }
 
     public BluetoothDevice getDevice() {
-
         return device;
     }
 

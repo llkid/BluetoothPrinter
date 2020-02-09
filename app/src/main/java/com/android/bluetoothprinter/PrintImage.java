@@ -17,6 +17,10 @@ import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Canvas;
+import android.graphics.PixelFormat;
+import android.graphics.drawable.BitmapDrawable;
+import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -48,6 +52,8 @@ public class PrintImage extends AppCompatActivity implements View.OnClickListene
     public static final int CHOOSE_PHOTO = 2;
 
     private Button printBtn;
+    private boolean isHaveimg = false;
+    private PrinterAdapter adapter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -82,6 +88,7 @@ public class PrintImage extends AppCompatActivity implements View.OnClickListene
             case R.id.take_photo:
                 Toast.makeText(this, "You clicked take_photo", Toast.LENGTH_SHORT).show();
                 takePhoto();
+                isHaveimg = true;
                 break;
             case R.id.choose_from_album:
                 Toast.makeText(this, "You clicked choose_from_album", Toast.LENGTH_SHORT).show();
@@ -235,10 +242,8 @@ public class PrintImage extends AppCompatActivity implements View.OnClickListene
             if (new File(path).exists()) {
                 ContentValues values = new ContentValues();
                 values.put(MediaStore.Images.Media.DATA, path);
-                cursor.close();
                 return getContentResolver().insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values);
             } else {
-                cursor.close();
                 return null;
             }
         }
@@ -249,17 +254,45 @@ public class PrintImage extends AppCompatActivity implements View.OnClickListene
 //            Bitmap bitmap = BitmapFactory.decodeFile(imagePath);
 //            picture.setImageBitmap(bitmap);
             picture.setImageURI(getImageContentUri(imagePath));
+            isHaveimg = true;
         } else {
             Toast.makeText(this, "Failed to get image", Toast.LENGTH_SHORT).show();
         }
     }
 
+    /*private Drawable.ConstantState imageState() {
+        Drawable.ConstantState state = picture.getDrawable().getCurrent().getConstantState();
+        return state;
+    }*/
+
+    private Bitmap getBitmap(ImageView img) {
+        Bitmap bitmap = ((BitmapDrawable)img.getDrawable()).getBitmap();
+        return bitmap;
+    }
+
+    /**
+     * 将获取的图片转化成bitmap形式传给imageUtil类
+     * @param v button id
+     */
     @Override
     public void onClick(View v) {
         switch (v.getId()) {
             case R.id.img_print:
-                //打印方法
-                Toast.makeText(PrintImage.this, "printing...", Toast.LENGTH_SHORT).show();
+                //将图片数据传输到打印方法中 bitmap
+//                adapter.startPrintImage(getBitmap(picture));
+                if (isHaveimg) {
+                    Bitmap bitmap = getBitmap(picture);
+                    PrintUtil printUtil = new PrintUtil();
+                    byte[] tempData = printUtil.bitmap2Bytes(bitmap, Bitmap.CompressFormat.JPEG);
+
+                    Toast.makeText(PrintImage.this, "printing...", Toast.LENGTH_SHORT).show();
+
+                    Intent intent = new Intent(this, ImageActivity.class);
+                    intent.putExtra("image", tempData);
+                    startActivity(intent);
+                } else {
+                    Toast.makeText(PrintImage.this, "没有图片可以打印", Toast.LENGTH_SHORT).show();
+                }
                 break;
             default:
                 break;

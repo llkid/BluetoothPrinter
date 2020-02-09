@@ -36,7 +36,7 @@ public class PrintUtil {
     }
 
     /**
-     * 设置打印格式
+     * 输出数据
      * @param command 格式指令
      */
     public void selectCommand(byte[] command) {

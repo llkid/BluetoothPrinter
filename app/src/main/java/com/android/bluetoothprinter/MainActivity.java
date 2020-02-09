@@ -27,7 +27,6 @@ import android.widget.ListView;
 import android.widget.ProgressBar;
 import android.widget.Switch;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.navigation.NavigationView;
@@ -108,8 +107,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         listView = (ListView) findViewById(R.id.listView);
         mBluetoothDevicesDatas = new ArrayList<>();
 
-        String printContent=getIntent().getStringExtra("printContent");
-        adapter = new PrinterAdapter(this, mBluetoothDevicesDatas, TextUtils.isEmpty(printContent)?"123456789完\n\n\n":printContent);
+        String printContent = getIntent().getStringExtra("printContent");
+        adapter = new PrinterAdapter(this, mBluetoothDevicesDatas, TextUtils.isEmpty(printContent) ? "123456789完\n\n\n" : printContent);
         listView.setAdapter(adapter);
 
         chechBluetooth();
@@ -147,7 +146,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                 //开启蓝牙
             } else {
                 searchDevices();
-                setViewStatus(true);
+                setViewStatus(false);
                 mSwitch.setChecked(true);
             }
         }
@@ -221,7 +220,6 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     private final int ACCESS_LOCATION = 1;
     @SuppressLint("WrongConstant")
     private void getPermission() {
-        Log.e("TAG", "---------------->");
         if (Build.VERSION.SDK_INT > Build.VERSION_CODES.M) {
             int permissionCheck = 0;
             permissionCheck = this.checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION);
@@ -323,7 +321,6 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     private final BroadcastReceiver mReceiver = new BroadcastReceiver() {
         public void onReceive(Context context, Intent intent) {
             String action = intent.getAction();
-            Log.e("TAG", "execute here");
             // 把搜索的设置添加到集合中
             if (BluetoothDevice.ACTION_FOUND.equals(action)) {
                 BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
@@ -374,15 +371,17 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                 break;
             case R.id.nav_friends:
                 break;
-            case R.id.nav_location:
+            case R.id.nav_text:
+                Intent textIntent = new Intent(this, PrintText.class);
+                startActivity(textIntent);
                 break;
             case R.id.nav_task:
-                Intent intent = new Intent(this, PrintImage.class);
-                startActivity(intent);
+                Intent imageIntent = new Intent(this, PrintImage.class);
+                startActivity(imageIntent);
                 break;
             case R.id.nav_quit:
-                Intent intent1 = new Intent(this, LoginLayout.class);
-                startActivity(intent1);
+                Intent quitIntent = new Intent(this, LoginLayout.class);
+                startActivity(quitIntent);
                 break;
             default:
                 break;

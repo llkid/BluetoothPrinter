@@ -11,9 +11,9 @@
             android:icon="@android:drawable/btn_star_big_off"
             android:title="Friends" />
         <item
-            android:id="@+id/nav_location"
+            android:id="@+id/nav_text"
             android:icon="@android:drawable/btn_star_big_off"
-            android:title="Location" />
+            android:title="Text" />
         <item
             android:id="@+id/nav_task"
             android:icon="@android:drawable/btn_star_big_off"
