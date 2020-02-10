@@ -46,8 +46,6 @@ class PrinterAdapter extends BaseAdapter {
     //搜索弹窗提示
     ProgressDialog progressDialog = null;
     private final int exceptionCod = 100;
-    //打印的内容
-    private String mPrintContent;
 
     private boolean isStartPrint;
 
@@ -68,15 +66,14 @@ class PrinterAdapter extends BaseAdapter {
     };
 
     /**
+     * 主页面开启蓝牙后连接设备操作
      * @param context                上下文
      * @param mBluetoothDevicesDatas 设备列表
-     * @param printContent           打印的内容
      */
-    public PrinterAdapter(Context context, ArrayList<PrintBean> mBluetoothDevicesDatas, String printContent) {
+    public PrinterAdapter(Context context, ArrayList<PrintBean> mBluetoothDevicesDatas) {
         this.mBluetoothDevicesDatas = mBluetoothDevicesDatas;
         mContext = context;
         mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
-        mPrintContent = printContent;
         uuid = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
     }
 
@@ -92,15 +89,6 @@ class PrinterAdapter extends BaseAdapter {
     @Override
     public long getItemId(int position) {
         return position;
-    }
-
-    //返回打印机状态 以供打印文本和图片
-    public boolean isStartPrint() {
-        return isStartPrint;
-    }
-
-    public static PrintBean getDataBean() {
-        return dataBean;
     }
 
     //这里只设置与打印设备的连接
@@ -270,7 +258,7 @@ class PrinterAdapter extends BaseAdapter {
                 outputStream = mmSocket.getOutputStream();
 
                 //打印方法 后续增加多种打印方式
-                send(mPrintContent);
+//                send(mPrintContent);
             } catch (Exception connectException) {
                 Log.e("test", "连接失败");
                 connectException.printStackTrace();

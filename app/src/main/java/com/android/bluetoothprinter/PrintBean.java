@@ -1,9 +1,12 @@
 package com.android.bluetoothprinter;
 
+import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothClass;
 import android.bluetooth.BluetoothDevice;
 import android.text.TextUtils;
 import android.view.View;
+
+import java.util.Set;
 
 
 /**
@@ -21,16 +24,32 @@ public class PrintBean {
     //蓝牙-是否已经匹配
     public boolean isConnect;
 
+    public Set<BluetoothDevice> pairedDevices;
+
+    public BluetoothAdapter bluetoothAdapter;
+
     BluetoothDevice device;
 
     /**
-     * @param devicee 蓝牙设备对象
+     *
+     * @param device 蓝牙设备对象
+     * @param adapter 蓝牙适配器
      */
-    public PrintBean(BluetoothDevice devicee) {
-        this.name = TextUtils.isEmpty(devicee.getName()) ? "未知" : devicee.getName();
-        this.address = devicee.getAddress();
-        this.isConnect = devicee.getBondState() == BluetoothDevice.BOND_BONDED;
-        this.type = devicee.getBluetoothClass().getDeviceClass();
+    public PrintBean(BluetoothDevice device, BluetoothAdapter adapter) {
+        this.name = TextUtils.isEmpty(device.getName()) ? "未知" : device.getName();
+        this.address = device.getAddress();
+        this.isConnect = device.getBondState() == BluetoothDevice.BOND_BONDED;
+        this.type = device.getBluetoothClass().getDeviceClass();
+        this.pairedDevices = adapter.getBondedDevices();
+        this.bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+    }
+
+    public BluetoothAdapter getBluetoothAdapter() {
+        return bluetoothAdapter;
+    }
+
+    public Set<BluetoothDevice> getPairedDevices() {
+        return pairedDevices;
     }
 
     public String getName() {

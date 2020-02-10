@@ -1,12 +1,30 @@
 package com.android.bluetoothprinter;
 
 import android.annotation.SuppressLint;
+import android.app.DialogFragment;
+import android.app.ProgressDialog;
+import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothDevice;
+import android.bluetooth.BluetoothSocket;
 import android.graphics.Bitmap;
+import android.os.Build;
+import android.os.Handler;
+import android.os.Message;
+import android.util.Log;
+import android.widget.Toast;
+
+import androidx.annotation.RequiresApi;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.Charset;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+import java.util.UUID;
+
+import static com.android.bluetoothprinter.PrintBean.PRINT_TYPE;
 
 
 /**
@@ -15,11 +33,154 @@ import java.nio.charset.Charset;
  */
 public class PrintUtil {
 
+    private String TAG = "printutil";
+
     private final static int LINE_BYTE_SIZE = 32;
+
     private static OutputStream outputStream = null;
+
+    //匹配过的设备列表
+    private List<String> mpairedDeviceList = new ArrayList<String>();
+
+    private BluetoothAdapter mBluetoothAdapter = null;
+
+    private BluetoothDevice mBluetoothDevice = null;
+
+    private PrintBean mPrintBean = null;
+
+    private BluetoothSocket mBluetoothSocket = null;
+
+    private static final UUID SPP_UUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
+
+    //set得到搜索到的所有设备信息
+    Set<BluetoothDevice> pairedDevices = null;
+
+    private ProgressDialog progressDialog = null;
 
     public void setOutputStream(OutputStream outputStream) {
         PrintUtil.outputStream = outputStream;
+    }
+
+    /**
+     * 连接打印设备
+     * @return 返回连接状态
+     */
+    private boolean connectPrinter(){
+        mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+        if (mBluetoothAdapter.isEnabled()) {
+            String getName;
+            pairedDevices = mBluetoothAdapter.getBondedDevices(); // 已经配对了的设备？
+            while (mpairedDeviceList.size() > 1) {
+                mpairedDeviceList.remove(1);
+            }
+            if (pairedDevices.size() == 0) {
+                return false;  // 没有配对过的设备
+            }
+            for (BluetoothDevice device : pairedDevices) {
+                getName = device.getAddress();
+                mpairedDeviceList.add(getName);//蓝牙名
+            }
+            String temString = mpairedDeviceList.get(0);
+            mBluetoothDevice = mBluetoothAdapter.getRemoteDevice(temString);
+            if (mBluetoothDevice.getBluetoothClass().getDeviceClass() != PRINT_TYPE) {
+//                Toast.makeText(this, "不是蓝牙设备", Toast.LENGTH_SHORT).show();
+                return false;
+            }
+            try {
+                mBluetoothSocket = mBluetoothDevice.createRfcommSocketToServiceRecord(SPP_UUID);
+                mBluetoothSocket.connect();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        } else {
+//            Toast.makeText(this, "蓝牙未连接", Toast.LENGTH_SHORT).show();
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     * 打印图片接口
+     * @param bitmap bitmap转换成byte[] 类型的数据
+     */
+    @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR2)
+    public void startPrintImage(Bitmap bitmap) {
+        if (mBluetoothDevice.getBluetoothClass().getDeviceClass() != PRINT_TYPE) {
+            Log.e(TAG, "不是打印设备");
+            return;
+        }
+        if(mBluetoothSocket == null){
+            connectPrinter();
+        } else {
+            if(!mBluetoothSocket.isConnected()){
+                try {
+                    mBluetoothSocket.connect();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            } else {
+                Log.d(TAG, "printVerifyData(),mBluetoothSocket.isConnected.");
+            }
+        }
+
+        try {
+            outputStream = mBluetoothSocket.getOutputStream();
+            //这里是打印操作
+            imageInit(outputStream, bitmap);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * 打印方法
+     * @param sendData 输入的文本
+     */
+    public void startPrintText(String sendData) {
+        if (connectPrinter()) {
+//            Toast.makeText(this, "printing...", Toast.LENGTH_SHORT).show();
+
+            try {
+                outputStream = mBluetoothSocket.getOutputStream();
+                byte[] data = sendData.getBytes("gbk");
+                outputStream.write(data, 0, data.length);
+                //切纸
+                outputStream.write(new byte[]{0x0a, 0x0a, 0x1d, 0x56, 0x01});
+                outputStream.flush();
+                outputStream.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+
+            }
+        } else {
+//            Toast.makeText(this, "打印设备连接失败", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    /**
+     * 图片数据处理及打印操作
+     * @param outputStream
+     * @param bitmap
+     */
+    private void imageInit(OutputStream outputStream, Bitmap bitmap) {
+        try {
+            PrintUtil printUtil = new PrintUtil();
+            printUtil.setOutputStream(outputStream);
+            printUtil.selectCommand(PrintUtil.RESET);
+            printUtil.selectCommand(PrintUtil.NORMAL);
+
+            Bitmap tempBitmap = printUtil.convertGreyImgByFloyd(bitmap);
+            byte[] imgData = printUtil.bitmap2Bytes(tempBitmap, Bitmap.CompressFormat.JPEG);
+
+            outputStream.write(imgData, 0, imgData.length);
+            //切纸
+            outputStream.write(new byte[]{0x0a, 0x0a, 0x1d, 0x56, 0x01});
+            outputStream.flush();
+            outputStream.close();
+            progressDialog.dismiss();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     /**

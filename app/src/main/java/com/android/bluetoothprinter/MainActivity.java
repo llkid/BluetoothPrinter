@@ -27,6 +27,7 @@ import android.widget.ListView;
 import android.widget.ProgressBar;
 import android.widget.Switch;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.navigation.NavigationView;
@@ -64,21 +65,12 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     //侧滑栏
     private DrawerLayout mDrawerLayout;
 
-    /**
-     * 启动打印页面
-     *
-     * @param printContent 要打印的内容
-     */
-    public static void starUi(Context context, String printContent) {
-        Intent intent = new Intent(context, MainActivity.class);
-        intent.putExtra("printContent", printContent);
-        context.startActivity(intent);
-    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        ActivityCollector.addActivity(this);
 
         //顶栏初始化
         toolbar = (Toolbar) findViewById(R.id.toolbar);
@@ -107,8 +99,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         listView = (ListView) findViewById(R.id.listView);
         mBluetoothDevicesDatas = new ArrayList<>();
 
-        String printContent = getIntent().getStringExtra("printContent");
-        adapter = new PrinterAdapter(this, mBluetoothDevicesDatas, TextUtils.isEmpty(printContent) ? "123456789完\n\n\n" : printContent);
+        adapter = new PrinterAdapter(this, mBluetoothDevicesDatas);
         listView.setAdapter(adapter);
 
         chechBluetooth();
@@ -351,9 +342,9 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                 }
             }
             if (device.getBondState() == BluetoothDevice.BOND_BONDED && device.getBluetoothClass().getDeviceClass() == PRINT_TYPE) {
-                mBluetoothDevicesDatas.add(0, new PrintBean(device));
+                mBluetoothDevicesDatas.add(0, new PrintBean(device, mBluetoothAdapter));
             } else {
-                mBluetoothDevicesDatas.add(new PrintBean(device));
+                mBluetoothDevicesDatas.add(new PrintBean(device, mBluetoothAdapter));
             }
         }
     };
@@ -370,6 +361,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                 mDrawerLayout.closeDrawers();
                 break;
             case R.id.nav_friends:
+                Toast.makeText(this, "We are friends", Toast.LENGTH_SHORT).show();
                 break;
             case R.id.nav_text:
                 Intent textIntent = new Intent(this, PrintText.class);
@@ -380,12 +372,18 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                 startActivity(imageIntent);
                 break;
             case R.id.nav_quit:
-                Intent quitIntent = new Intent(this, LoginLayout.class);
-                startActivity(quitIntent);
+//                Intent quitIntent = new Intent(this, LoginLayout.class);
+//                startActivity(quitIntent);
+                ActivityCollector.finishAll();
                 break;
             default:
                 break;
         }
         return true;
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
     }
 }
